@@ -11,14 +11,16 @@ from cStringIO import StringIO
 from urllib import urlencode
 from urllib2 import urlopen
 import logging
-from owslib.util import openURL, testXMLValue
+from owslib.util import openURL, testXMLValue, extract_xml_list
 from owslib.etree import etree
 from owslib.fgdc import Metadata
 from owslib.iso import MD_Metadata
 from owslib.crs import Crs
+from owslib.namespaces import Namespaces
 
-WFS_NAMESPACE = 'http://www.opengis.net/wfs'
-OGC_NAMESPACE = 'http://www.opengis.net/ogc'
+n = Namespaces()
+WFS_NAMESPACE = n.get_namespace("wfs")
+OGC_NAMESPACE = n.get_namespace("ogc")
 
 
 #TODO: use nspath in util.py
@@ -238,8 +240,10 @@ class ServiceIdentification(object):
 class ServiceProvider(object):
     ''' Implements IServiceProviderMetatdata '''
     def __init__(self, infoset):
-        self._root=infoset
+        self._root = infoset
+        self.name = testXMLValue(self._root.find(nspath('Name')))
         self.url = testXMLValue(self._root.find(nspath('OnlineResource')))
+        self.keywords = extract_xml_list(self._root.find(nspath('Keywords')))
 
 class ContentMetadata:
     """Abstraction for WFS metadata.

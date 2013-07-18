@@ -19,15 +19,15 @@ from owslib.iso import MD_Metadata
 from owslib.ows import *
 from owslib.fes import *
 from owslib.crs import Crs
+from owslib.feature import WebFeatureService_
+from owslib.namespaces import Namespaces
 
-namespaces = {
-    'gml': 'http://www.opengis.net/gml',
-    'ogc': 'http://www.opengis.net/ogc',
-    'ows': 'http://www.opengis.net/ows',
-    'wfs': 'http://www.opengis.net/wfs'
-}
+def get_namespaces():
+    n = Namespaces()
+    return n.get_namespaces(["gml","ogc","ows","wfs"])
+namespaces = get_namespaces()
 
-class WebFeatureService_1_1_0(object):
+class WebFeatureService_1_1_0(WebFeatureService_):
     """Abstraction for OGC Web Feature Service (WFS).
 
     Implements IWebFeatureService.
@@ -180,25 +180,7 @@ class WebFeatureService_1_1_0(object):
         # bbox
         elif bbox and typename:
 
-            # srs of the bbox is specified in the bbox as fifth paramter
-            srs = None
-            if len(bbox) == 5:
-                srs = self.getSRS(bbox[4],typename[0])
-            # take default srs
-            else:
-                srs = self.contents[typename[0]].crsOptions[0]
-
-            # format bbox parameter
-            if srs.encoding == "urn" :
-                    if srs.axisorder == "yx":
-                        request["bbox"] = "%s,%s,%s,%s,%s" % \
-                        (bbox[1],bbox[0],bbox[3],bbox[2],srs.getcodeurn())
-                    else:
-                        request["bbox"] = "%s,%s,%s,%s,%s" % \
-                        (bbox[0],bbox[1],bbox[2],bbox[3],srs.getcodeurn())
-            else:
-                request["bbox"] = "%s,%s,%s,%s,%s" % \
-                        (bbox[0],bbox[1],bbox[2],bbox[3],srs.getcode())
+            request["bbox"] = self.getBBOXKVP(bbox,typename)
 
         # or filter
         elif filter and typename:
@@ -248,29 +230,6 @@ class WebFeatureService_1_1_0(object):
                 return item
         raise KeyError, "No operation named %s" % name
 
-    def getSRS(self,srsname,typename):
-        """Returns None or Crs object for given name
-        """
-        if type(srsname) == type(""):
-            srs = Crs(srsname)
-        else:
-            srs = srsname
-
-        srss = map(lambda crs: crs.getcodeurn(),
-                self.contents[typename].crsOptions)
-
-        for s in srss:
-            s = Crs(s)
-            if srs.authority == s.authority and\
-                    srs.code == s.code:
-                if s.version and srs.version:
-                    if s.version  == srs.version:
-                        idx = srss.index(s.getcodeurn())
-                        return self.contents[typename].crsOptions[idx]
-                else:
-                    idx = srss.index(s.getcodeurn())
-                    return self.contents[typename].crsOptions[idx]
-        return None
 
 
 class ContentMetadata:
